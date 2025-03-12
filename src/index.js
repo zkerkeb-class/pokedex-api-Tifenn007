@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import saveJson from "./data/utils/saveJson.js";
 
 dotenv.config();
 
@@ -22,10 +23,6 @@ app.use(cors());
 app.use(express.json());
 
 // Middleware pour servir des fichiers statiques
-// 'app.use' est utilisé pour ajouter un middleware à notre application Express
-// '/assets' est le chemin virtuel où les fichiers seront accessibles
-// 'express.static' est un middleware qui sert des fichiers statiques
-// 'path.join(__dirname, '../assets')' construit le chemin absolu vers le dossier 'assets'
 app.use("/assets", express.static(path.join(__dirname, "../assets")));
 
 // Route GET de base
@@ -51,6 +48,78 @@ app.get("/api/pokemons", (req, res) => {
       "fairy",
     ],
     pokemons: pokemonsList,
+  });
+});
+
+app.get("/api/pokemons/:id", (req, res) => {
+  console.log(req.params.id);
+  const id = parseInt(req.params.id);
+  const pokemon = pokemonsList.find((pokemon) => pokemon.id === id);
+
+  if (!pokemon) {
+    return res.status(404).send({
+      type: "error",
+      status: 404,
+      message: "Pokemon non trouvé"
+    });
+  }
+  res.status(200).send({
+    type: "success",
+    status: 200,
+    pokemon: pokemon
+  });
+});
+
+//ajout
+app.post('/api/pokemons', (req, res) => {
+  const newPokemon = req.body;
+  pokemonsList.push(newPokemon);
+  saveJson(path.join(__dirname, './data/pokemons.json'), pokemonsList);
+  res.status(201).json(newPokemon);
+});
+
+//update
+app.put("/api/pokemons/:id", (req, res) => {
+  const pokemon = pokemonsList.find((pokemon) => pokemon.id === parseInt(req.params.id));
+  
+  if (!pokemon) {
+    return res.status(404).send({
+      type: "error",
+      status: 404,
+      message: "Pokemon non trouvé"
+    });
+  }
+  const indexOfPokemon = pokemonsList.indexOf(pokemon);
+  console.log("indexOfPokemon", indexOfPokemon);
+  pokemonsList.splice(indexOfPokemon, 1, req.body);
+  saveJson(path.join(__dirname, './data/pokemons.json'), pokemonsList);
+  res.status(200).send({
+    type: "success",
+    status: 200,
+    message: "Pokemon mis à jour"
+  });
+});
+
+//delete
+app.delete("/api/pokemons/:id", (req, res) => {
+  console.log(req.params.id);
+  const id = parseInt(req.params.id);
+  const pokemonIndex = pokemonsList.findIndex((pokemon) => pokemon.id === id);
+
+  if (pokemonIndex === -1) {
+    return res.status(404).send({
+      type: "error",
+      status: 404,
+      message: "Pokemon non trouvé"
+    });
+  }
+
+  pokemonsList.splice(pokemonIndex, 1);
+  saveJson(path.join(__dirname, './data/pokemons.json'), pokemonsList);
+  res.status(200).send({
+    type: "success",
+    status: 200,
+    message: "Pokemon supprimé"
   });
 });
 
