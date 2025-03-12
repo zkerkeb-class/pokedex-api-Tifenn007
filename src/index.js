@@ -71,15 +71,11 @@ app.get("/api/pokemons/:id", (req, res) => {
 });
 
 //ajout
-app.post("/api/newpok", (req, res) => {
-  pokemonsList.push(req.body);
-  console.log(req.body);
+app.post('/api/pokemons', (req, res) => {
+  const newPokemon = req.body;
+  pokemonsList.push(newPokemon);
   saveJson(path.join(__dirname, './data/pokemons.json'), pokemonsList);
-  res.status(200).send({
-    type: "success",
-    status: 200,
-    message: "Pokemon ajouté"
-  });
+  res.status(201).json(newPokemon);
 });
 
 //update
