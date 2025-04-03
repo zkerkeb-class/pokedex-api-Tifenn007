@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
-import authRoutes from './routes/auth.js';  // Importez le fichier authRoutes
+import authRoutes from './routes/authRoutes.js';  // Importez le fichier authRoutes
 import pokemonRoutes from './routes/pokemonRoutes.js'; // Si vous avez d'autres routes
 
 dotenv.config();

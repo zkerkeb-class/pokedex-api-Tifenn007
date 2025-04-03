@@ -1,5 +1,6 @@
 import express from 'express';
 import Pokemon from '../models/Pokemon.js';
+import verifyToken from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST - Créer un nouveau pokémon
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
     const existingPokemon = await Pokemon.findOne({ id: req.body.id });
     if (existingPokemon) {
@@ -69,7 +70,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT - Mettre à jour un pokémon
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
   try {
     const updatedPokemon = await Pokemon.findOneAndUpdate(
       { id: req.params.id },
@@ -89,21 +90,26 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE - Supprimer un pokémon
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
   try {
-    const deletedPokemon = await Pokemon.findOneAndDelete({ id: req.params.id });
-    if (!deletedPokemon) {
-      return res.status(404).json({ message: "Pokémon non trouvé" });
-    }
-    res.status(200).json({
-      message: "Pokémon supprimé avec succès",
-      pokemon: deletedPokemon
-    });
+      const id = parseInt(req.params.id, 10); // Convertir l'ID en nombre
+      if (isNaN(id)) {
+          return res.status(400).json({ message: "ID invalide" });
+      }
+
+      const deletedPokemon = await Pokemon.findOneAndDelete({ id });
+      if (!deletedPokemon) {
+          return res.status(404).json({ message: "Pokémon non trouvé" });
+      }
+      res.status(200).json({
+          message: "Pokémon supprimé avec succès",
+          pokemon: deletedPokemon
+      });
   } catch (error) {
-    res.status(500).json({
-      message: "Erreur lors de la suppression du pokémon",
-      error: error.message
-    });
+      res.status(500).json({
+          message: "Erreur lors de la suppression du pokémon",
+          error: error.message
+      });
   }
 });
 

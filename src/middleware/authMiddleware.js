@@ -1,19 +1,22 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
-const authenticate = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+const verifyToken = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', ''); // Extraire le token du header
+  console.log('Token reçu :', token);
 
   if (!token) {
-    return res.status(401).json({ message: 'Accès non autorisé, token manquant' });
+      return res.status(401).json({ message: 'Token manquant' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-    req.user = decoded;  // Ajouter les informations utilisateur à la requête
-    next();
+      const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY); // Vérifier la validité du token
+      console.log('Token décodé :', decoded);
+      req.user = decoded; // Ajouter les informations de l'utilisateur dans la requête
+      next(); // Passer à la route suivante
   } catch (error) {
-    return res.status(401).json({ message: 'Token invalide ou expiré' });
+      console.error('Erreur lors de la vérification du token :', error.message);
+      return res.status(401).json({ message: 'Token invalide' });
   }
 };
 
-module.exports = authenticate;
+export default verifyToken;
