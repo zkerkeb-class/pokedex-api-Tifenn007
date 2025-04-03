@@ -1,64 +1,40 @@
-import express from "express";
-import cors from "cors";
-import fs from 'fs';
-import path from "path";
-import { fileURLToPath } from "url";
-import dotenv from "dotenv";
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import connectDB from './config/db.js';
+import authRoutes from './routes/auth.js';  // Importez le fichier authRoutes
+import pokemonRoutes from './routes/pokemonRoutes.js'; // Si vous avez d'autres routes
 
 dotenv.config();
 
-// Lire le fichier JSON
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const pokemonsList = JSON.parse(fs.readFileSync(path.join(__dirname, './data/pokemons.json'), 'utf8'));
-
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Middleware pour CORS
-app.use(cors());
+// Connexion à la base de données
+connectDB();
 
-// Middleware pour parser le JSON
+// Middleware pour parser les requêtes JSON
 app.use(express.json());
 
-// Middleware pour servir des fichiers statiques
-// 'app.use' est utilisé pour ajouter un middleware à notre application Express
-// '/assets' est le chemin virtuel où les fichiers seront accessibles
-// 'express.static' est un middleware qui sert des fichiers statiques
-// 'path.join(__dirname, '../assets')' construit le chemin absolu vers le dossier 'assets'
-app.use("/assets", express.static(path.join(__dirname, "../assets")));
+// CORS configuration
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// Route GET de base
-app.get("/api/pokemons", (req, res) => {
-  res.status(200).send({
-    types: [
-      "fire",
-      "water",
-      "grass",
-      "electric",
-      "ice",
-      "fighting",
-      "poison",
-      "ground",
-      "flying",
-      "psychic",
-      "bug",
-      "rock",
-      "ghost",
-      "dragon",
-      "dark",
-      "steel",
-      "fairy",
-    ],
-    pokemons: pokemonsList,
-  });
+// Utilisation des routes d'authentification
+app.use('/api/auth', authRoutes);  // Assurez-vous que l'URL correspond à celle que vous utilisez pour POST
+
+// Utilisation des autres routes
+app.use('/api/pokemons', pokemonRoutes);
+
+// Route principale
+app.get('/', (req, res) => {
+  res.send('Bienvenue sur l\'API Pokémon');
 });
 
-app.get("/", (req, res) => {
-  res.send("bienvenue sur l'API Pokémon");
-});
-
-// Démarrage du serveur
+// Démarrer le serveur
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
 });
