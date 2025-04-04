@@ -4,27 +4,17 @@ import verifyToken from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// GET - Récupérer tous les pokémons avec filtres, tri et pagination
 router.get('/', async (req, res) => {
   try {
-    const { type, name, page = 1, limit = 10, orderBy = 'id' } = req.query;
+    const { type, name, orderBy = 'id' } = req.query;
 
-    // Construire l'objet de filtre
     let filter = {};
-    if (type) filter.types = type; // Filtre par type
-    if (name) filter.name = new RegExp(name, 'i'); // Filtre par nom (insensible à la casse)
+    if (type) filter.types = type; 
+    if (name) filter.name = new RegExp(name, 'i'); 
 
-    // Convertir `page` et `limit` en nombres
-    const pageNumber = parseInt(page, 10);
-    const limitNumber = parseInt(limit, 10);
-    const skip = (pageNumber - 1) * limitNumber;
-
-    // Récupération des pokémons avec filtres et pagination
     const pokemons = await Pokemon.find(filter)
-      .sort({ [orderBy]: 1 }) // Tri par défaut croissant
-      .skip(skip)
-      .limit(limitNumber)
-      .select('id name types image'); // Projection : récupérer uniquement certains champs
+      .sort({ [orderBy]: 1 }) 
+      .select('id name types image'); 
 
     res.status(200).json(pokemons);
   } catch (error) {
@@ -38,7 +28,7 @@ router.get('/', async (req, res) => {
 // GET - Récupérer un pokémon par son ID
 router.get('/:id', async (req, res) => {
   try {
-    const pokemon = await Pokemon.findOne({ id: req.params.id });
+    const pokemon = await Pokemon.findOne({ id: parseInt(req.params.id, 10) }); // Recherche par id numérique
     if (!pokemon) {
       return res.status(404).json({ message: "Pokémon non trouvé" });
     }
