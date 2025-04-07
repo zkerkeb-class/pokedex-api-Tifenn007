@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
 // GET - Récupérer un pokémon par son ID
 router.get('/:id', async (req, res) => {
   try {
-    const pokemon = await Pokemon.findOne({ id: parseInt(req.params.id, 10) }); // Recherche par id numérique
+    const pokemon = await Pokemon.findById(req.params.id); // Recherche par id numérique
     if (!pokemon) {
       return res.status(404).json({ message: "Pokémon non trouvé" });
     }
