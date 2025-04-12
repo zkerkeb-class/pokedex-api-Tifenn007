@@ -1,6 +1,7 @@
 import express from 'express';
 import Pokemon from '../models/Pokemon.js';
 import verifyToken from '../middleware/authMiddleware.js';
+import checkRole from '../middleware/roleMiddleware.js';
 
 const router = express.Router();
 
@@ -79,24 +80,32 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// DELETE - Supprimer un pokémon
-router.delete('/:id', verifyToken, async (req, res) => {
+// DELETE - Supprimer un pokémon (admin seulement)
+router.delete('/:id', verifyToken, checkRole(['admin']), async (req, res) => {
   try {
-      const id = parseInt(req.params.id, 10); // Convertir l'ID en nombre
+      const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
-          return res.status(400).json({ message: "ID invalide" });
+          return res.status(400).json({ 
+              success: false,
+              message: "ID invalide" 
+          });
       }
 
       const deletedPokemon = await Pokemon.findOneAndDelete({ id });
       if (!deletedPokemon) {
-          return res.status(404).json({ message: "Pokémon non trouvé" });
+          return res.status(404).json({ 
+              success: false,
+              message: "Pokémon non trouvé" 
+          });
       }
       res.status(200).json({
+          success: true,
           message: "Pokémon supprimé avec succès",
           pokemon: deletedPokemon
       });
   } catch (error) {
       res.status(500).json({
+          success: false,
           message: "Erreur lors de la suppression du pokémon",
           error: error.message
       });
