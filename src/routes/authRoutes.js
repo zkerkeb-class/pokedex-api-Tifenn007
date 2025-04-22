@@ -25,6 +25,7 @@ router.post('/register', async (req, res) => {
       username,
       email,
       password,
+      orbes: 10,
       role: role || 'user' // Utilise le rôle fourni ou 'user' par défaut
     });
 
@@ -45,7 +46,8 @@ router.post('/register', async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        role: user.role
+        role: user.role,
+        orbes: user.orbes
       }
     });
   } catch (error) {
@@ -146,7 +148,8 @@ router.post('/login', async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        role: user.role
+        role: user.role,
+        orbes: user.orbes
       }
     });
   } catch (error) {

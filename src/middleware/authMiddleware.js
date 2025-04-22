@@ -11,8 +11,9 @@ const verifyToken = (req, res, next) => {
   try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY); // Vérifier la validité du token
       console.log('Token décodé :', decoded);
-      req.user = decoded; // Ajouter les informations de l'utilisateur dans la requête
-      next(); // Passer à la route suivante
+      req.user = decoded;                           // infos du token (userId et role)
+      req.userId = decoded.userId;                  // ← on expose aussi userId pour la route /me
+      next();                                       // Passer à la suite
   } catch (error) {
       console.error('Erreur lors de la vérification du token :', error.message);
       return res.status(401).json({ message: 'Token invalide' });

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';  
 import pokemonRoutes from './routes/pokemonRoutes.js'; 
+import userRoutes from './routes/user.js';
 import path from "path";
 import { fileURLToPath } from "url";
 dotenv.config();
@@ -26,6 +27,7 @@ app.use(cors({
 
 app.use("/assets", express.static(path.join(__dirname, "../assets")));
 app.use('/api/auth', authRoutes);  
+app.use('/api/users', userRoutes);
 app.use('/api/pokemons', pokemonRoutes);
 
 app.get('/', (req, res) => {

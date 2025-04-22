@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 
     const pokemons = await Pokemon.find(filter)
       .sort({ [orderBy]: 1 }) 
-      .select('id name types image'); 
+      .select('id name types image price'); 
 
     res.status(200).json(pokemons);
   } catch (error) {
