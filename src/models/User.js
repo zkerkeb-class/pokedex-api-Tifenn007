@@ -33,7 +33,13 @@ const userSchema = new mongoose.Schema({
   orbes: {
     type: Number,
     default: 10
-  }
+  },
+  pokemons: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Pokemon'
+    }
+  ]
 });
 
 // Hash le mot de passe avant de sauvegarder
