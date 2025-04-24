@@ -39,7 +39,10 @@ const userSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Pokemon'
     }
-  ]
+  ],
+  dateDerRecomp: {
+    type: Date
+  }
 });
 
 // Hash le mot de passe avant de sauvegarder

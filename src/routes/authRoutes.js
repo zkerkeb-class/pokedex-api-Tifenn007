@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import verifyToken from '../middleware/authMiddleware.js';
 import checkRole from '../middleware/roleMiddleware.js';
+import Quest from '../models/Quest.js';
+import UserQuest from '../models/UserQuest.js';
 
 const router = express.Router();
 
@@ -133,6 +135,20 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Mise à jour de la progression de la quête 'connexion'
+    const connexionQuest = await Quest.findOne({ key: 'connexion', active: true });
+    if (connexionQuest) {
+      const uq = await UserQuest.findOneAndUpdate(
+        { user: user._id, quest: connexionQuest._id },
+        { $inc: { progress: 1 } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
+      if (!uq.completed && uq.progress >= connexionQuest.target) {
+        uq.completed = true;
+        await uq.save();
+      }
+    }
+
     // Créer le token JWT
     const token = jwt.sign(
       { userId: user._id, role: user.role },
@@ -140,21 +156,23 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    res.json({
+    // Réponse de connexion
+    return res.json({
       success: true,
-      message: 'Connexion réussie ! Bienvenue de retour.',
+      message: 'Connexion réussie !',
       token,
       user: {
         id: user._id,
         username: user.username,
         email: user.email,
         role: user.role,
-        orbes: user.orbes
+        orbes: user.orbes,
+        dateDerRecomp: user.dateDerRecomp
       }
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false,
       message: 'Erreur lors de la connexion. Veuillez réessayer.' 
     });

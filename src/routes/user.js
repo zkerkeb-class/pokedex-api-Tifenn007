@@ -2,18 +2,23 @@ import express from 'express';
 import authMiddleware from '../middleware/authMiddleware.js';
 import User from '../models/User.js';
 import Pokemon from '../models/Pokemon.js';
+import Quest from '../models/Quest.js';
+import UserQuest from '../models/UserQuest.js';
+import checkRole from '../middleware/roleMiddleware.js';
 const router = express.Router();
 
 router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password').populate('pokemons');
+    const user = await User.findById(req.userId)
+      .select('username email role orbes pokemons dateDerRecomp createdAt')
+      .populate('pokemons');
     return res.status(200).json(user);
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
 });
 
-router.post('/me/buy/:pokemonId', authMiddleware, async (req, res) => {
+router.post('/me/buy/:pokemonId', authMiddleware, checkRole(['user']), async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) {
@@ -40,9 +45,22 @@ router.post('/me/buy/:pokemonId', authMiddleware, async (req, res) => {
 
     await user.populate('pokemons');
 
+    // Clamp progression de la quête 'achat'
+    const achatQuest = await Quest.findOne({ key: 'achat', active: true });
+    if (achatQuest) {
+      let uq = await UserQuest.findOne({ user: user._id, quest: achatQuest._id });
+      if (!uq) {
+        uq = new UserQuest({ user: user._id, quest: achatQuest._id, progress: 1, completed: 1 >= achatQuest.target });
+      } else if (!uq.completed) {
+        uq.progress = Math.min(uq.progress + 1, achatQuest.target);
+        if (uq.progress >= achatQuest.target) uq.completed = true;
+      }
+      await uq.save();
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Pokémon acheté avec succès ! Dirigez-vous dans votre arsenal pour l'améliorer ou le vendre",
+      message: "Pokémon acheté avec succès !",
       orbes: user.orbes,
       pokemons: user.pokemons
     });
@@ -51,7 +69,7 @@ router.post('/me/buy/:pokemonId', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/me/sell/:pokemonId', authMiddleware, async (req, res) => {
+router.post('/me/sell/:pokemonId', authMiddleware, checkRole(['user']), async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) {
@@ -80,6 +98,19 @@ router.post('/me/sell/:pokemonId', authMiddleware, async (req, res) => {
 
     await user.populate('pokemons');
 
+    // Clamp progression de la quête 'vente'
+    const venteQuest = await Quest.findOne({ key: 'vente', active: true });
+    if (venteQuest) {
+      let uq = await UserQuest.findOne({ user: user._id, quest: venteQuest._id });
+      if (!uq) {
+        uq = new UserQuest({ user: user._id, quest: venteQuest._id, progress: 1, completed: 1 >= venteQuest.target });
+      } else if (!uq.completed) {
+        uq.progress = Math.min(uq.progress + 1, venteQuest.target);
+        if (uq.progress >= venteQuest.target) uq.completed = true;
+      }
+      await uq.save();
+    }
+
     return res.status(200).json({
       success: true,
       message: `Pokémon vendu avec succès ! Vous récupérez ${salePrice} orbes.`,
@@ -89,6 +120,93 @@ router.post('/me/sell/:pokemonId', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: "Erreur lors de la vente", error: err.message });
+  }
+});
+
+router.post('/me/daily-reward', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Utilisateur non trouvé" });
+    }
+    const today = new Date().toDateString();
+    if (user.dateDerRecomp && new Date(user.dateDerRecomp).toDateString() === today) {
+      return res.status(400).json({ success: false, message: "Récompense journalière déjà réclamée" });
+    }
+    user.orbes += 10;
+    user.dateDerRecomp = new Date();
+    await user.save();
+    return res.status(200).json({
+      success: true,
+      message: "Récompense journalière réclamée: +10 orbes",
+      orbes: user.orbes,
+      dateDerRecomp: user.dateDerRecomp
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Erreur lors de la récupération de la récompense journalière", error: err.message });
+  }
+});
+
+router.get('/me/quests', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    const dailyRewardClaimed = !!user.dateDerRecomp;
+    // Charger définitions de quêtes actives
+    const defs = await Quest.find({ active: true });
+    // Charger ou initialiser la progression
+    const quests = await Promise.all(defs.map(async def => {
+      let uq = await UserQuest.findOne({ user: user._id, quest: def._id });
+      if (!uq) {
+        uq = await UserQuest.create({ user: user._id, quest: def._id });
+      }
+      return {
+        _id: def._id,
+        key: def.key,
+        name: def.name,
+        target: def.target,
+        reward: def.reward,
+        resetFrequency: def.resetFrequency,
+        current: uq.progress,
+        completed: uq.completed,
+        claimed: uq.claimed
+      };
+    }));
+    return res.json({ dailyRewardClaimed, orbesReward: 10, quests });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/me/quests/:id/claim', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const questId = req.params.id;
+    // Charger la progression
+    const uq = await UserQuest.findOne({ user: userId, quest: questId }).populate('quest');
+    if (!uq) {
+      return res.status(404).json({ success: false, message: 'Progression introuvable' });
+    }
+    if (!uq.completed) {
+      return res.status(400).json({ success: false, message: 'Quête non terminée' });
+    }
+    if (uq.claimed) {
+      // Déjà réclamée : on renvoie OK sans erreur
+      const user = await User.findById(userId);
+      return res.json({ success: true, message: 'Récompense déjà réclamée', orbes: user.orbes, claimed: true });
+    }
+    // Créditer les orbes
+    const reward = uq.quest.reward;
+    const user = await User.findById(userId);
+    user.orbes += reward;
+    await user.save();
+    // Marquer comme réclamé
+    uq.claimed = true;
+    await uq.save();
+    return res.json({ success: true, message: `Vous avez reçu ${reward} orbes !`, orbes: user.orbes });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
