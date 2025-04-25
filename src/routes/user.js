@@ -9,9 +9,19 @@ const router = express.Router();
 
 router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId)
-      .select('username email role orbes pokemons dateDerRecomp createdAt')
+    let user = await User.findById(req.userId)
+      .select('username email role orbes pokemons dateDerRecomp derConnect nbachats nbventes nbConnexions createdAt')
       .populate('pokemons');
+    // Si nouvelle connexion du jour, on met à jour derConnect et nbConnexions
+    const today = new Date().toDateString();
+    if (!user.derConnect || new Date(user.derConnect).toDateString() !== today) {
+      user.derConnect = new Date();
+      user.nbConnexions = (user.nbConnexions || 0) + 1;
+      await user.save();
+      user = await User.findById(req.userId)
+        .select('username email role orbes pokemons dateDerRecomp derConnect nbachats nbventes nbConnexions createdAt')
+        .populate('pokemons');
+    }
     return res.status(200).json(user);
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -130,17 +140,17 @@ router.post('/me/daily-reward', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: "Utilisateur non trouvé" });
     }
     const today = new Date().toDateString();
-    if (user.dateDerRecomp && new Date(user.dateDerRecomp).toDateString() === today) {
-      return res.status(400).json({ success: false, message: "Récompense journalière déjà réclamée" });
+    const alreadyClaimed = user.dateDerRecomp && new Date(user.dateDerRecomp).toDateString() === today;
+    if (!alreadyClaimed) {
+      user.orbes += 10;
+      user.dateDerRecomp = new Date();
+      await user.save();
     }
-    user.orbes += 10;
-    user.dateDerRecomp = new Date();
-    await user.save();
     return res.status(200).json({
       success: true,
-      message: "Récompense journalière réclamée: +10 orbes",
       orbes: user.orbes,
-      dateDerRecomp: user.dateDerRecomp
+      dateDerRecomp: user.dateDerRecomp,
+      dailyRewardClaimed: true
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: "Erreur lors de la récupération de la récompense journalière", error: err.message });
@@ -150,7 +160,8 @@ router.post('/me/daily-reward', authMiddleware, async (req, res) => {
 router.get('/me/quests', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
-    const dailyRewardClaimed = !!user.dateDerRecomp;
+    const today = new Date().toDateString();
+    const dailyRewardClaimed = user.dateDerRecomp && new Date(user.dateDerRecomp).toDateString() === today;
     // Charger définitions de quêtes actives
     const defs = await Quest.find({ active: true });
     // Charger ou initialiser la progression

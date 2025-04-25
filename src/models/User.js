@@ -42,6 +42,21 @@ const userSchema = new mongoose.Schema({
   ],
   dateDerRecomp: {
     type: Date
+  },
+  derConnect: {
+    type: Date
+  },
+  nbachats: {
+    type: Number,
+    default: 0
+  },
+  nbventes: {
+    type: Number,
+    default: 0
+  },
+  nbConnexions: {
+    type: Number,
+    default: 0
   }
 });
 

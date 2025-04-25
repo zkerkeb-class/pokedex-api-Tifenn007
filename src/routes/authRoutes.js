@@ -149,6 +149,11 @@ router.post('/login', async (req, res) => {
       }
     }
 
+    // Mettre à jour la date de dernière connexion et le compteur
+    user.derConnect = new Date();
+    user.nbConnexions = (user.nbConnexions || 0) + 1;
+    await user.save();
+
     // Créer le token JWT
     const token = jwt.sign(
       { userId: user._id, role: user.role },
@@ -167,7 +172,9 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role,
         orbes: user.orbes,
-        dateDerRecomp: user.dateDerRecomp
+        dateDerRecomp: user.dateDerRecomp,
+        derConnect: user.derConnect,
+        nbConnexions: user.nbConnexions
       }
     });
   } catch (error) {

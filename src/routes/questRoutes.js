@@ -33,7 +33,8 @@ router.get('/', verifyToken, async (req, res) => {
     }
     // Cas user normal -> liste dynamiques avec progression
     const user = await User.findById(req.user.userId);
-    const dailyRewardClaimed = !!user.dateDerRecomp;
+    const today = new Date().toDateString();
+    const dailyRewardClaimed = user.dateDerRecomp && new Date(user.dateDerRecomp).toDateString() === today;
     const defs = await Quest.find({ active: true });
     const quests = await Promise.all(defs.map(async def => {
       let uq = await UserQuest.findOne({ user: user._id, quest: def._id });
