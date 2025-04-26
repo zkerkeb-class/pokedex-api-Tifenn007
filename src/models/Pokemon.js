@@ -1,12 +1,14 @@
+// Modèle Pokémon pour MongoDB
 import mongoose from 'mongoose';  // Ajoute cette ligne pour importer mongoose
 
+// Définition du schéma Pokémon
 const pokemonSchema = new mongoose.Schema({
-    id: {
+    id: { // Identifiant unique du Pokémon
       type: Number,
       required: true,
       unique: true
     },
-    name: {
+    name: { // Noms du Pokémon dans différentes langues
       type: {
         english: { type: String, required: true },
         japanese: { type: String, required: true },
@@ -15,18 +17,18 @@ const pokemonSchema = new mongoose.Schema({
       },
       required: true
     },
-    types: [{
+    types: [{ // Types du Pokémon (ex: feu, eau...)
       type: String,
       enum: [
         "fire", "water", "grass", "electric", "ice", "fighting",
         "poison", "ground", "flying", "psychic", "bug", "rock",
-        "ghost", "dragon", "dark", "steel", "fairy", "normal"  // Ajout de 'normal'
+        "ghost", "dragon", "dark", "steel", "fairy", "normal"
       ]
     }],
-    image: {
+    image: { // URL de l'image
       type: String
     },
-    stats: {
+    stats: { // Statistiques du Pokémon
       hp: Number,
       attack: Number,
       defense: Number,
@@ -34,19 +36,20 @@ const pokemonSchema = new mongoose.Schema({
       specialDefense: Number,
       speed: Number
     },
-    price: {
+    price: { // Prix du Pokémon
       type: Number,
       required: true
     },
-    evolutions: [{
+    evolutions: [{ // Liste des évolutions (id des autres Pokémon)
       type: Number,
       ref: 'Pokemon'
     }]
     
   }, {
-    timestamps: true
+    timestamps: true // Ajoute createdAt et updatedAt
   });
   
+  // Création du modèle Pokemon
   const Pokemon = mongoose.model('Pokemon', pokemonSchema);
   
   export default Pokemon;

@@ -1,8 +1,9 @@
+// Fichier des routes pour la gestion des Pokémons (CRUD, upload image, etc.)
 import express from 'express';
-import Pokemon from '../models/Pokemon.js';
-import verifyToken from '../middleware/authMiddleware.js';
-import checkRole from '../middleware/roleMiddleware.js';
-import multer from 'multer';
+import Pokemon from '../models/Pokemon.js'; // Modèle Pokémon
+import verifyToken from '../middleware/authMiddleware.js'; // Vérifie le token JWT
+import checkRole from '../middleware/roleMiddleware.js'; // Vérifie le rôle
+import multer from 'multer'; // Pour gérer l'upload d'images
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -10,17 +11,18 @@ import fs from 'fs';
 const router = express.Router();
 
 // Configuration Multer pour stocker les images dans assets/pokemons
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url); // Chemin du fichier courant
+const __dirname = path.dirname(__filename); // Dossier courant
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../../assets/pokemons')),
   filename: (req, file, cb) => {
-    const unique = `${Date.now()}-${Math.round(Math.random()*1e9)}`;
+    const unique = `${Date.now()}-${Math.round(Math.random()*1e9)}`; // Nom unique
     cb(null, unique + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage });
+const upload = multer({ storage }); // Middleware d'upload
 
+// Récupérer tous les Pokémons (avec filtres possibles par type ou nom)
 router.get('/', async (req, res) => {
   try {
     const { type, name, orderBy = 'id' } = req.query;
@@ -42,7 +44,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET - Récupérer un pokémon par son ID
+// Récupérer un Pokémon par son ID (MongoDB)
 router.get('/:id', async (req, res) => {
   try {
     const pokemon = await Pokemon.findById(req.params.id); // Recherche par id numérique
@@ -58,7 +60,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST - Créer un nouveau pokémon (multipart/form-data ou JSON)
+// Créer un nouveau Pokémon (admin ou interface de gestion)
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     // Récupérer et parser les champs du body (JSON ou multipart)
@@ -109,6 +111,7 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
 });
 
+// Modifier un Pokémon (admin ou interface de gestion)
 router.put('/:id', upload.single('image'), async (req, res) => {
   try {
     // Récupérer et parser les champs du body (JSON ou multipart)
@@ -155,7 +158,7 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   }
 });
 
-// DELETE - Supprimer un pokémon (admin seulement)
+// Supprimer un Pokémon (admin seulement)
 router.delete('/:id', verifyToken, checkRole(['admin']), async (req, res) => {
   try {
     // On supprime par l'_id MongoDB

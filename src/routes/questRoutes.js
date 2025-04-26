@@ -1,13 +1,14 @@
+// Fichier des routes pour la gestion des quêtes (admin et utilisateur)
 import express from 'express';
-import verifyToken from '../middleware/authMiddleware.js';
-import checkRole from '../middleware/roleMiddleware.js';
-import Quest from '../models/Quest.js';
-import UserQuest from '../models/UserQuest.js';
-import User from '../models/User.js';
+import verifyToken from '../middleware/authMiddleware.js'; // Vérifie le token JWT
+import checkRole from '../middleware/roleMiddleware.js'; // Vérifie le rôle
+import Quest from '../models/Quest.js'; // Modèle de quête
+import UserQuest from '../models/UserQuest.js'; // Modèle de progression de quête
+import User from '../models/User.js'; // Modèle utilisateur
 
-const router = express.Router();
+const router = express.Router(); // Création du routeur
 
-// Créer une nouvelle quête (admin)
+// Créer une nouvelle quête (admin uniquement)
 router.post('/', verifyToken, checkRole(['admin']), async (req, res) => {
   try {
     const { key, name, target, reward, resetFrequency } = req.body;
@@ -23,7 +24,7 @@ router.post('/', verifyToken, checkRole(['admin']), async (req, res) => {
   }
 });
 
-// Lister les quêtes : admin récupère toutes, user ses quêtes dynamiques
+// Lister les quêtes (admin : toutes, user : ses quêtes dynamiques)
 router.get('/', verifyToken, async (req, res) => {
   try {
     if (req.user.role === 'admin') {
@@ -60,7 +61,7 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// Mettre à jour une quête (admin)
+// Modifier une quête (admin uniquement)
 router.put('/:id', verifyToken, checkRole(['admin']), async (req, res) => {
   try {
     const quest = await Quest.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -73,7 +74,7 @@ router.put('/:id', verifyToken, checkRole(['admin']), async (req, res) => {
   }
 });
 
-// Supprimer définitivement une quête (admin)
+// Supprimer une quête (admin uniquement)
 router.delete('/:id', verifyToken, checkRole(['admin']), async (req, res) => {
   try {
     const quest = await Quest.findByIdAndDelete(req.params.id);
@@ -86,7 +87,7 @@ router.delete('/:id', verifyToken, checkRole(['admin']), async (req, res) => {
   }
 });
 
-// Désactiver une quête (admin) – soft-delete
+// Désactiver une quête (admin uniquement)
 router.patch('/:id/deactivate', verifyToken, checkRole(['admin']), async (req, res) => {
   try {
     const quest = await Quest.findById(req.params.id);
@@ -101,7 +102,7 @@ router.patch('/:id/deactivate', verifyToken, checkRole(['admin']), async (req, r
   }
 });
 
-// Activer une quête (admin)
+// Activer une quête (admin uniquement)
 router.patch('/:id/activate', verifyToken, checkRole(['admin']), async (req, res) => {
   try {
     const quest = await Quest.findById(req.params.id);

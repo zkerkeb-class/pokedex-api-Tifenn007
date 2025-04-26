@@ -1,19 +1,20 @@
+// Fichier des routes d'authentification (inscription, connexion, etc.)
 import express from 'express';
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
-import verifyToken from '../middleware/authMiddleware.js';
-import checkRole from '../middleware/roleMiddleware.js';
-import Quest from '../models/Quest.js';
-import UserQuest from '../models/UserQuest.js';
+import jwt from 'jsonwebtoken'; // Pour générer et vérifier les tokens JWT
+import User from '../models/User.js'; // Modèle utilisateur
+import verifyToken from '../middleware/authMiddleware.js'; // Middleware pour vérifier le token
+import checkRole from '../middleware/roleMiddleware.js'; // Middleware pour vérifier le rôle
+import Quest from '../models/Quest.js'; // Modèle de quête
+import UserQuest from '../models/UserQuest.js'; // Modèle de progression de quête
 
-const router = express.Router();
+const router = express.Router(); // Création du routeur Express
 
-// Route d'inscription
+// Inscription d'un nouvel utilisateur (accessible à tous)
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { username, email, password, role } = req.body; // Récupère les infos du corps de la requête
 
-    // Vérifier si l'utilisateur existe déjà
+    // Vérifie si l'email existe déjà
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ 
@@ -22,24 +23,25 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Créer un nouvel utilisateur
+    // Crée un nouvel utilisateur avec un rôle par défaut 'user'
     user = new User({
       username,
       email,
       password,
-      orbes: 10,
-      role: role || 'user' // Utilise le rôle fourni ou 'user' par défaut
+      orbes: 10, // Orbes de départ
+      role: role || 'user'
     });
 
-    await user.save();
+    await user.save(); // Sauvegarde en base
 
-    // Créer le token JWT
+    // Génère un token JWT pour l'utilisateur
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET_KEY,
       { expiresIn: '24h' }
     );
 
+    // Retourne le token et les infos principales
     res.status(201).json({
       success: true,
       message: 'Inscription réussie ! Bienvenue sur notre plateforme.',
@@ -61,12 +63,12 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Route d'inscription admin (protégée)
+// Inscription d'un admin (nécessite d'être connecté en tant qu'admin)
 router.post('/register/admin', verifyToken, checkRole(['admin']), async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Vérifier si l'utilisateur existe déjà
+    // Vérifie si l'email existe déjà
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ 
@@ -75,7 +77,7 @@ router.post('/register/admin', verifyToken, checkRole(['admin']), async (req, re
       });
     }
 
-    // Créer un nouvel utilisateur admin
+    // Crée un nouvel utilisateur avec le rôle 'admin'
     user = new User({
       username,
       email,
@@ -85,7 +87,7 @@ router.post('/register/admin', verifyToken, checkRole(['admin']), async (req, re
 
     await user.save();
 
-    // Créer le token JWT
+    // Génère un token JWT pour l'admin
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET_KEY,
@@ -112,12 +114,12 @@ router.post('/register/admin', verifyToken, checkRole(['admin']), async (req, re
   }
 });
 
-// Route de connexion
+// Connexion d'un utilisateur (login)
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body; // Récupère email et mot de passe
 
-    // Vérifier si l'utilisateur existe
+    // Cherche l'utilisateur par email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ 
@@ -126,7 +128,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Vérifier le mot de passe
+    // Vérifie le mot de passe avec la méthode du modèle
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ 
@@ -135,7 +137,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Mise à jour de la progression de la quête 'connexion'
+    // Met à jour la progression de la quête "connexion" si elle existe
     const connexionQuest = await Quest.findOne({ key: 'connexion', active: true });
     if (connexionQuest) {
       const uq = await UserQuest.findOneAndUpdate(
@@ -149,19 +151,19 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // Mettre à jour la date de dernière connexion et le compteur
+    // Met à jour la date de dernière connexion et le compteur
     user.derConnect = new Date();
     user.nbConnexions = (user.nbConnexions || 0) + 1;
     await user.save();
 
-    // Créer le token JWT
+    // Génère un token JWT pour la session
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET_KEY,
       { expiresIn: '24h' }
     );
 
-    // Réponse de connexion
+    // Retourne le token et les infos principales
     return res.json({
       success: true,
       message: 'Connexion réussie !',

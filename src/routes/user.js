@@ -1,12 +1,14 @@
+// Fichier des routes liées à l'utilisateur (profil, achat, vente, quêtes, etc.)
 import express from 'express';
-import authMiddleware from '../middleware/authMiddleware.js';
-import User from '../models/User.js';
-import Pokemon from '../models/Pokemon.js';
-import Quest from '../models/Quest.js';
-import UserQuest from '../models/UserQuest.js';
-import checkRole from '../middleware/roleMiddleware.js';
-const router = express.Router();
+import authMiddleware from '../middleware/authMiddleware.js'; // Vérifie le token JWT
+import User from '../models/User.js'; // Modèle utilisateur
+import Pokemon from '../models/Pokemon.js'; // Modèle Pokémon
+import Quest from '../models/Quest.js'; // Modèle de quête
+import UserQuest from '../models/UserQuest.js'; // Modèle de progression de quête
+import checkRole from '../middleware/roleMiddleware.js'; // Vérifie le rôle
+const router = express.Router(); // Création du routeur
 
+// Récupérer les infos de l'utilisateur connecté (nécessite d'être connecté)
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     let user = await User.findById(req.userId)
@@ -28,6 +30,7 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
+// Acheter un Pokémon (seulement pour les utilisateurs connectés et rôle 'user')
 router.post('/me/buy/:pokemonId', authMiddleware, checkRole(['user']), async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -79,6 +82,7 @@ router.post('/me/buy/:pokemonId', authMiddleware, checkRole(['user']), async (re
   }
 });
 
+// Vendre un Pokémon (seulement pour les utilisateurs connectés et rôle 'user')
 router.post('/me/sell/:pokemonId', authMiddleware, checkRole(['user']), async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -133,6 +137,7 @@ router.post('/me/sell/:pokemonId', authMiddleware, checkRole(['user']), async (r
   }
 });
 
+// Récupérer la récompense journalière (10 orbes par jour)
 router.post('/me/daily-reward', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -157,6 +162,7 @@ router.post('/me/daily-reward', authMiddleware, async (req, res) => {
   }
 });
 
+// Voir la progression des quêtes de l'utilisateur
 router.get('/me/quests', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -189,6 +195,7 @@ router.get('/me/quests', authMiddleware, async (req, res) => {
   }
 });
 
+// Récupérer la récompense d'une quête terminée
 router.post('/me/quests/:id/claim', authMiddleware, async (req, res) => {
   try {
     const userId = req.userId;

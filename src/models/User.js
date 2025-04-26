@@ -1,60 +1,62 @@
+// Modèle utilisateur pour MongoDB
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+// Définition du schéma utilisateur
 const userSchema = new mongoose.Schema({
-  username: {
+  username: { // Nom d'utilisateur unique
     type: String,
     required: true,
     unique: true,
     trim: true,
     minlength: 3
   },
-  email: {
+  email: { // Email unique
     type: String,
     required: true,
     unique: true,
     trim: true,
     lowercase: true
   },
-  password: {
+  password: { // Mot de passe (sera hashé)
     type: String,
     required: true,
     minlength: 6
   },
-  role: {
+  role: { // Rôle de l'utilisateur
     type: String,
     enum: ['user', 'admin'],
     default: 'user'
   },
-  createdAt: {
+  createdAt: { // Date de création
     type: Date,
     default: Date.now
   },
-  orbes: {
+  orbes: { // Monnaie du jeu
     type: Number,
     default: 10
   },
-  pokemons: [
+  pokemons: [ // Liste des Pokémons possédés
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Pokemon'
     }
   ],
-  dateDerRecomp: {
+  dateDerRecomp: { // Date de dernière récompense
     type: Date
   },
-  derConnect: {
+  derConnect: { // Date de dernière connexion
     type: Date
   },
-  nbachats: {
+  nbachats: { // Nombre d'achats
     type: Number,
     default: 0
   },
-  nbventes: {
+  nbventes: { // Nombre de ventes
     type: Number,
     default: 0
   },
-  nbConnexions: {
+  nbConnexions: { // Nombre de connexions
     type: Number,
     default: 0
   }
@@ -78,6 +80,7 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+// Création du modèle User
 const User = mongoose.model('User', userSchema);
 
 export default User; 
