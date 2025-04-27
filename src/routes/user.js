@@ -166,11 +166,46 @@ router.post('/me/daily-reward', authMiddleware, async (req, res) => {
 router.get('/me/quests', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
-    const today = new Date().toDateString();
-    const dailyRewardClaimed = user.dateDerRecomp && new Date(user.dateDerRecomp).toDateString() === today;
+    const today = new Date();
+    const todayStr = today.toDateString();
+    const dailyRewardClaimed = user.dateDerRecomp && new Date(user.dateDerRecomp).toDateString() === todayStr;
     // Charger définitions de quêtes actives
     const defs = await Quest.find({ active: true });
     // Charger ou initialiser la progression
+    await Promise.all(defs.map(async def => {
+      let uq = await UserQuest.findOne({ user: user._id, quest: def._id });
+      if (!uq) {
+        uq = await UserQuest.create({ user: user._id, quest: def._id });
+      }
+      // --- LOGIQUE DE RESET ---
+      if (def.resetFrequency === 'daily') {
+        // Si la quête est quotidienne et lastReset n'est pas aujourd'hui
+        if (!uq.lastReset || new Date(uq.lastReset).toDateString() !== todayStr) {
+          uq.progress = 0;
+          uq.completed = false;
+          uq.claimed = false;
+          uq.lastReset = today;
+          await uq.save();
+        }
+      } else if (def.resetFrequency === 'weekly') {
+        // Si la quête est hebdomadaire et lastReset n'est pas cette semaine
+        const last = uq.lastReset ? new Date(uq.lastReset) : null;
+        const getWeek = d => {
+          d = new Date(d);
+          d.setHours(0,0,0,0);
+          d.setDate(d.getDate() - d.getDay()); // début de semaine (dimanche)
+          return d.getTime();
+        };
+        if (!last || getWeek(last) !== getWeek(today)) {
+          uq.progress = 0;
+          uq.completed = false;
+          uq.claimed = false;
+          uq.lastReset = today;
+          await uq.save();
+        }
+      }
+    }));
+    // Recharger la progression après reset éventuel
     const quests = await Promise.all(defs.map(async def => {
       let uq = await UserQuest.findOne({ user: user._id, quest: def._id });
       if (!uq) {
