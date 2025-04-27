@@ -1,61 +1,51 @@
-import express from "express";
-import cors from "cors";
-import fs from 'fs';
+// Importation des modules nécessaires
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import connectDB from './config/db.js'; // Connexion à la base de données
+import authRoutes from './routes/authRoutes.js';  // Routes d'authentification
+import pokemonRoutes from './routes/pokemonRoutes.js'; // Routes des pokémons
+import userRoutes from './routes/user.js'; // Routes des utilisateurs
+import questRoutes from './routes/questRoutes.js'; // Routes des quêtes
 import path from "path";
 import { fileURLToPath } from "url";
-import dotenv from "dotenv";
 
+// Chargement des variables d'environnement
 dotenv.config();
 
-// Lire le fichier JSON
+// Gestion des chemins pour les modules ES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const pokemonsList = JSON.parse(fs.readFileSync(path.join(__dirname, './data/pokemons.json'), 'utf8'));
 
+// Création de l'application Express
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Middleware pour CORS
-app.use(cors());
+// Connexion à la base de données MongoDB
+connectDB();
 
-// Middleware pour parser le JSON
+// Middleware pour parser le JSON dans les requêtes
 app.use(express.json());
 
-// Middleware pour servir des fichiers statiques
-// 'app.use' est utilisé pour ajouter un middleware à notre application Express
-// '/assets' est le chemin virtuel où les fichiers seront accessibles
-// 'express.static' est un middleware qui sert des fichiers statiques
-// 'path.join(__dirname, '../assets')' construit le chemin absolu vers le dossier 'assets'
+// Configuration de CORS pour autoriser les requêtes du frontend
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Servir les fichiers statiques (images, etc.)
 app.use("/assets", express.static(path.join(__dirname, "../assets")));
 
-// Route GET de base
-app.get("/api/pokemons", (req, res) => {
-  res.status(200).send({
-    types: [
-      "fire",
-      "water",
-      "grass",
-      "electric",
-      "ice",
-      "fighting",
-      "poison",
-      "ground",
-      "flying",
-      "psychic",
-      "bug",
-      "rock",
-      "ghost",
-      "dragon",
-      "dark",
-      "steel",
-      "fairy",
-    ],
-    pokemons: pokemonsList,
-  });
-});
+// Définition des routes principales de l'API
+app.use('/api/auth', authRoutes);  
+app.use('/api/users', userRoutes);
+app.use('/api/quests', questRoutes);
+app.use('/api/pokemons', pokemonRoutes);
 
-app.get("/", (req, res) => {
-  res.send("bienvenue sur l'API Pokémon");
+// Route de base pour vérifier que l'API fonctionne
+app.get('/', (req, res) => {
+  res.send('Bienvenue sur l\'API Pokémon');
 });
 
 // Démarrage du serveur

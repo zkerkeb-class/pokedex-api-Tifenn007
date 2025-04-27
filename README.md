@@ -1,75 +1,150 @@
-## Concepts à Comprendre
-1. REST API
-   - Méthodes HTTP (GET, POST, PUT, DELETE)
-   - Codes de statut HTTP
-   - Structure des URL
-   - CORS (Cross-Origin Resource Sharing)
+# Pokedex API
 
-2. Express.js
-   - Routing
-   - Middleware
-   - Gestion des requêtes et réponses
-   - Configuration CORS
+## Description du projet
 
-3. Sécurité de Base
-   - Validation des entrées
-   - Authentification
-   - Gestion des erreurs
-   - Politiques CORS
+Ce projet est une API REST développée avec Node.js et Express.js permettant de gérer un Pokédex interactif.
+Elle permet aux utilisateurs de s'inscrire, se connecter, collectionner des Pokémon, réaliser des quêtes, acheter/vendre des Pokémon et obtenir des récompenses quotidiennes.
+L'API intègre une gestion des rôles (utilisateur/admin), une authentification sécurisée par JWT, et une gestion des images pour les Pokémon.
 
-## Configuration CORS
-CORS (Cross-Origin Resource Sharing) est un mécanisme qui permet à de nombreuses ressources (polices, JavaScript, etc.) d'une page web d'être demandées à partir d'un autre domaine que celui du domaine d'origine.
+---
 
-Pour utiliser l'API depuis un autre domaine :
-1. L'API est configurée avec CORS activé
-2. Toutes les origines sont autorisées dans cette version de développement
-3. En production, vous devriez restreindre les origines autorisées
+## Sécurité et Authentification
 
-Pour une configuration plus restrictive, vous pouvez modifier les options CORS :
+- **Routes d'authentification (login/register)** :
+  Permettent aux utilisateurs de s'inscrire et de se connecter. Les routes `/api/auth/register` et `/api/auth/login` sont utilisées pour créer un compte et obtenir un token d'accès.
 
-```javascript
-app.use(cors({
-  origin: 'https://votre-domaine.com',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-```
+- **Génération et validation des JWT** :
+  Lors de la connexion ou de l'inscription, un token JWT (JSON Web Token) est généré et envoyé à l'utilisateur. Ce token doit être envoyé dans le header `Authorization` pour accéder aux routes protégées. Le middleware vérifie la validité du token à chaque requête.
 
-## Ressources Additionnelles
-- [Documentation Express.js](https://expressjs.com/fr/)
-- [Guide des Status HTTP](https://developer.mozilla.org/fr/docs/Web/HTTP/Status)
-- [REST API Best Practices](https://restfulapi.net/)
+- **Middleware de protection des routes** :
+  Certaines routes sont protégées par des middlewares (`authMiddleware`, `roleMiddleware`) qui vérifient la présence et la validité du token, ainsi que le rôle de l'utilisateur (user/admin).
 
-## Support
-Pour toute question ou problème :
-1. Vérifiez la documentation
-2. Consultez les messages d'erreur dans la console
-3. Demandez de l'aide à votre formateur
+- **Stockage sécurisé des mots de passe** :
+  Les mots de passe sont automatiquement hashés avant d'être stockés en base de données grâce à la librairie `bcryptjs`. Ainsi, même en cas de fuite de la base, les mots de passe restent protégés.
 
-## Prochaines Étapes
-- Ajout d'une base de données (MongoDB)
-- Implémentation de tests automatisés
-- Déploiement de l'API
-- Documentation avec Swagger
+---
 
-## Gestion des Fichiers Statiques
-Le serveur expose le dossier `assets` pour servir les images des Pokémon. Les images sont accessibles via l'URL :
+## Instructions d'installation
+
+1. **Cloner le dépôt**
+   ```bash
+   git clone <url-du-repo>
+   cd pokedex-api-Tifenn007
+   ```
+
+2. **Installer les dépendances**
+   ```bash
+   npm install
+   ```
+
+3. **Configurer les variables d'environnement**
+   - Crée un fichier `.env` à la racine du projet avec au minimum :
+     ```
+     JWT_SECRET_KEY=une_chaine_secrete
+     MONGODB_URI=mongodb://localhost:27017/pokedex
+     PORT=3000
+     ```
+   - Adapte les valeurs selon ta configuration.
+
+4. **Lancer le serveur**
+   ```bash
+   npm start
+   ```
+   Le serveur sera accessible sur `http://localhost:3000`.
+
+---
+
+## Documentation de l'API
+
+### Authentification
+
+- **POST /api/auth/register**  
+  Inscription d'un nouvel utilisateur  
+  Corps attendu : `{ username, email, password }`
+
+- **POST /api/auth/login**  
+  Connexion d'un utilisateur  
+  Corps attendu : `{ email, password }`  
+  Retourne un token JWT à utiliser dans le header `Authorization`.
+
+- **POST /api/auth/register/admin**  
+  Création d'un compte admin (nécessite d'être connecté en tant qu'admin)
+
+---
+
+### Utilisateur
+
+- **GET /api/user/me**  
+  Récupère les informations du profil de l'utilisateur connecté.
+
+- **POST /api/user/me/buy/:pokemonId**  
+  Acheter un Pokémon (rôle `user` requis).
+
+- **POST /api/user/me/sell/:pokemonId**  
+  Vendre un Pokémon (rôle `user` requis).
+
+- **POST /api/user/me/daily-reward**  
+  Récupérer la récompense quotidienne.
+
+- **GET /api/user/me/quests**  
+  Voir la progression des quêtes.
+
+- **POST /api/user/me/quests/:id/claim**  
+  Récupérer la récompense d'une quête terminée.
+
+---
+
+### Pokémon
+
+- **GET /api/pokemons**  
+  Liste tous les Pokémon (filtres possibles : `type`, `name`).
+
+- **GET /api/pokemons/:id**  
+  Détail d'un Pokémon par son ID.
+
+- **POST /api/pokemons**  
+  Créer un nouveau Pokémon (admin ou interface de gestion, upload d'image possible).
+
+- **PUT /api/pokemons/:id**  
+  Modifier un Pokémon.
+
+- **DELETE /api/pokemons/:id**  
+  Supprimer un Pokémon (admin uniquement).
+
+---
+
+### Quêtes
+
+- **POST /api/quests**  
+  Créer une nouvelle quête (admin uniquement).
+
+- **GET /api/quests**  
+  Lister les quêtes (admin : toutes, user : progression personnelle).
+
+- **PUT /api/quests/:id**  
+  Modifier une quête (admin uniquement).
+
+- **DELETE /api/quests/:id**  
+  Supprimer une quête (admin uniquement).
+
+- **PATCH /api/quests/:id/deactivate**  
+  Désactiver une quête (admin uniquement).
+
+- **PATCH /api/quests/:id/activate**  
+  Réactiver une quête (admin uniquement).
+
+---
+
+### Gestion des fichiers statiques
+
+Les images des Pokémon sont accessibles via :  
 ```
 http://localhost:3000/assets/pokemons/{id}.png
 ```
 
-Par exemple, pour accéder à l'image de Pikachu (ID: 25) :
-```
-http://localhost:3000/assets/pokemons/25.png
-```
+---
 
-### Configuration
-Le middleware `express.static` est utilisé pour servir les fichiers statiques :
-```javascript
-app.use('/assets', express.static(path.join(__dirname, '../assets')));
-```
+## Remarques
 
-### Sécurité
-- Seuls les fichiers du dossier `assets` sont exposés
-- Les autres dossiers du projet restent inaccessibles
-- En production, considérez l'utilisation d'un CDN pour les fichiers statiques
+- utiliser le header `Authorization: Bearer <token>` pour toutes les routes protégées.
+
